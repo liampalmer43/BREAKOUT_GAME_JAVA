@@ -29,7 +29,7 @@ public class Breakout extends JComponent {
     static float PADDLE_SPEED = 10.0f;
     static int FRAME_RATE = 40;
 
-    static int MAX_BALLS = 3;
+    static int MAX_BALLS = 5;
 
     // These values are used for scaling object positions when the window is resized.
     static int PREVIOUS_WIDTH = 1000;
@@ -111,11 +111,35 @@ public class Breakout extends JComponent {
             if (e.getKeyCode() == 81) {
                 jframe.dispose();
             }
+            if (e.getKeyCode() == 49) {
+                active = false;
+                started = false;
+                LEVEL = 1;
+                brick_list.ResetBricks();
+                for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                    balls[iter] = null;
+                }
+                balls[0] = new Ball(0);
+            }
             if (e.getKeyCode() == 50) {
                 active = false;
                 started = false;
                 LEVEL = 2;
                 brick_list.ResetBricks();
+                for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                    balls[iter] = null;
+                }
+                balls[0] = new Ball(0);
+            }
+            if (e.getKeyCode() == 51) {
+                active = false;
+                started = false;
+                LEVEL = 3;
+                brick_list.ResetBricks();
+                for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                    balls[iter] = null;
+                }
+                balls[0] = new Ball(0);
             }
 	    }
     }
@@ -134,8 +158,9 @@ public class Breakout extends JComponent {
         jframe = j; 
         balls = new Ball[MAX_BALLS];
         balls[0] = new Ball(0);
-        balls[1] = null;
-        balls[2] = null;
+        for (int iter = 1; iter < MAX_BALLS; ++iter) {
+            balls[iter] = null;
+        }
         brick_list = new BrickList(5, 10);
 	    paddle = new Paddle();
         active = false;
@@ -179,17 +204,19 @@ public class Breakout extends JComponent {
             int student_width = g2.getFontMetrics().stringWidth(student);
             g2.drawString(student, (getWidth() - student_width) / 2, 80);
            
-            g2.setFont(new Font("Arial", Font.BOLD, 15));
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
             PrintCenter(g2, "GOAL 1: Keep ball from hitting bottom of screen!", 160);
-            PrintCenter(g2, "GOAL 2: Eliminate all blocks in order to level up!", 180);
-            PrintCenter(g2, "LEFT ARROW: Move paddle left.", 200);
-            PrintCenter(g2, "RIGHT ARROW: Move paddle right.", 220);
-            PrintCenter(g2, "Q: Quit Game", 240);
-            PrintCenter(g2, "2: Skip to Level 2", 260);
+            PrintCenter(g2, "GOAL 2: Eliminate all blocks in order to level up!", 175);
+            PrintCenter(g2, "LEFT ARROW: Move paddle left.", 190);
+            PrintCenter(g2, "RIGHT ARROW: Move paddle right.", 205);
+            PrintCenter(g2, "Q: Quit Game", 220);
+            PrintCenter(g2, "1: Jump to Level 1", 235);
+            PrintCenter(g2, "2: Jump to Level 2", 250);
+            PrintCenter(g2, "3: Jump to Level 3", 265);
             PrintCenter(g2, "ENTER: Start Game and Start Play", 280);
-            PrintCenter(g2, "SPACE BAR: Pause Game", 300);
+            PrintCenter(g2, "SPACE BAR: Pause Game", 295);
         }
-        else if (LEVEL == 3) {
+        else if (LEVEL == 4) {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 22));
             String message = "GAME WON :)";
@@ -224,8 +251,40 @@ public class Breakout extends JComponent {
         public void run() {
             while (true) {
                 if (LEVEL > 0) {
+                    int total_active_balls = 0;
+                    for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                        if (balls[iter] != null) {
+                            total_active_balls++;
+                        }
+                    }
+                    if (total_active_balls == 0) {
+                        active = false;
+                        started = false;
+                        LIVES--;
+                        balls[0] = new Ball(0);
+                    }
                     // Move the paddle first so the ball can collide with it appropriately.
                     paddle.move();
+
+                    // Scale the ball's position appropriately during screen resizing events.
+                    float x_scale_factor = 1.0f;
+                    float y_scale_factor = 1.0f;
+                    if (PREVIOUS_WIDTH != getWidth()) {
+                        x_scale_factor = (float)getWidth() / (float)PREVIOUS_WIDTH;
+                        PREVIOUS_WIDTH = getWidth();
+                    }
+                    if (PREVIOUS_HEIGHT != getHeight()) {
+                        y_scale_factor = (float)getHeight() / (float)PREVIOUS_HEIGHT;
+                        PREVIOUS_HEIGHT = getHeight();
+                    }
+                    if (x_scale_factor != 1.0f || y_scale_factor != 1.0f) {
+                        for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                            if (balls[iter] != null) {
+                                balls[iter].scalePosition(x_scale_factor, y_scale_factor);
+                            }
+                        }
+                    }
+
                     // Once the paddle is in the correct position, move the ball.
                     for (int iter = 0; iter < MAX_BALLS; ++iter) {
                         if (balls[iter] != null) {
@@ -239,7 +298,11 @@ public class Breakout extends JComponent {
                         }
                         else if (LEVEL == 2) {
                             LEVEL = 3;
+                            brick_list.ResetBricks();
                         }                    
+                        else if (LEVEL == 3) {
+                            LEVEL = 4;
+                        }
                         active = false;
                         started = false;
                     }
@@ -343,26 +406,30 @@ public class Breakout extends JComponent {
         private int order;
 
         public Ball(int ball_order) {
-            if (order == 0) {
-                position_x = WIDTH - 20;
-                position_y = 2 * HEIGHT / 3;
+            int actual_width = getWidth() > 0 ? getWidth() : WIDTH;
+            int actual_height = getHeight() > 0 ? getHeight() : HEIGHT;
+            if (ball_order == 0) {
+                position_x = actual_width - 20;
+                position_y = 2 * actual_height / 3;
                 direction_x = -BALL_SPEED;
+                direction_y = BALL_SPEED;
+            }
+            else if (ball_order != 0) {
+                position_x = actual_width / 2;
+                position_y = 20;
+                direction_x = BALL_SPEED;
                 direction_y = BALL_SPEED;
             }
             order = ball_order;
         }
 
+        public void scalePosition(float x_scale_factor, float y_scale_factor) {
+            // In the case of window resizing, scale the ball's x and y positions appropriately.
+            position_x *= x_scale_factor;
+            position_y *= y_scale_factor;
+        }
+
         public void move() {
-            // In the case of window resizing, scale the paddle's x and y positions appropriately.
-            if (PREVIOUS_WIDTH != getWidth()) {
-                position_x = position_x * getWidth() / PREVIOUS_WIDTH;
-                PREVIOUS_WIDTH = getWidth();
-            }
-            if (PREVIOUS_HEIGHT != getHeight()) {
-                position_y = position_y * getHeight() / PREVIOUS_HEIGHT;
-                PREVIOUS_HEIGHT = getHeight();
-            }
-            
             // If the game has not started, ensure the ball is positioned appropriately along the right vertical wall.
             if (!started) {
                 position_x = getWidth() - 20;
@@ -509,13 +576,7 @@ public class Breakout extends JComponent {
 
                 if (position_y > getHeight() - BALL_RADIUS) {
                     // Here we intersect the bottom of the screen
-                    active = false;
-                    started = false;
-                    LIVES--;
-                    position_x = getWidth() - 20;
-                    position_y = 2 * getHeight() / 3;
-                    direction_x = -BALL_SPEED;
-                    direction_y = BALL_SPEED;
+                    balls[order] = null;
                     return;
                 }
             }
@@ -564,6 +625,20 @@ public class Breakout extends JComponent {
 
         public void nullify(int r, int c) {
             if (r >= 0 && r < bricks.length && c >=0 && c < bricks[r].length) {
+                if (LEVEL == 3) {
+                    if (r == 1 && c == 2) {
+                        balls[1] = new Ball(1);
+                    }
+                    if (r == 1 && c == 7) {
+                        balls[2] = new Ball(2);
+                    }
+                    if (r == 3 && c == 2) {
+                        balls[3] = new Ball(3);
+                    }
+                    if (r == 3 && c == 7) {
+                        balls[4] = new Ball(4);
+                    }
+                }
                 if (bricks[r][c].getLives() == 0) {
                     bricks[r][c] = null;
                 }
@@ -688,6 +763,14 @@ public class Breakout extends JComponent {
                 }
                 else {
                     g.setColor(Color.BLUE);
+                }
+            }
+            if (LEVEL == 3) {
+                if ((row == 1 && column == 2) || (row == 1 && column == 7) || (row == 3 && column == 2) || (row == 3 && column == 7)) {
+                    g.setColor(Color.PINK);
+                }
+                else {
+                    g.setColor(Color.GREEN);
                 }
             }
             g.fill(new Rectangle2D.Double(getWidth() * (column + X_OFFSET) / X_DIVISION,
