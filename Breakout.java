@@ -29,6 +29,8 @@ public class Breakout extends JComponent {
     static float PADDLE_SPEED = 10.0f;
     static int FRAME_RATE = 40;
 
+    static int MAX_BALLS = 3;
+
     // These values are used for scaling object positions when the window is resized.
     static int PREVIOUS_WIDTH = 1000;
     static int PREVIOUS_HEIGHT = 600;
@@ -38,7 +40,7 @@ public class Breakout extends JComponent {
     // Levels
     static int LEVEL = 0;
     static int SCORE = 0;
-    static int LIVES = 3;
+    static int LIVES = 5;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable()
@@ -55,7 +57,7 @@ public class Breakout extends JComponent {
                 Breakout canvas = new Breakout(f);
                 f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 f.setSize(WIDTH, HEIGHT); // window size
-                f.setMinimumSize(new Dimension(260, 300));
+                f.setMinimumSize(new Dimension(340, 330));
                 f.setContentPane(canvas); // add canvas to jframe
                 f.setVisible(true); // show the window
 		        f.addKeyListener(canvas.new BreakoutKeyListener());
@@ -80,7 +82,6 @@ public class Breakout extends JComponent {
             }
 	    }
 	    public void keyReleased(KeyEvent e) {
-System.out.println(e.getKeyCode());
             if (LEVEL > 0) {
                 if (e.getKeyCode() == 37 || e.getKeyCode() == 39) {
                     paddle.setSpeed(0);
@@ -110,12 +111,18 @@ System.out.println(e.getKeyCode());
             if (e.getKeyCode() == 81) {
                 jframe.dispose();
             }
+            if (e.getKeyCode() == 50) {
+                active = false;
+                started = false;
+                LEVEL = 2;
+                brick_list.ResetBricks();
+            }
 	    }
     }
 
     // Object properties
     private JFrame jframe;
-    private Ball ball;
+    private Ball[] balls;
     private BrickList brick_list;
     private Paddle paddle;
     boolean active;
@@ -125,11 +132,19 @@ System.out.println(e.getKeyCode());
     // Constructor for Breakout
     public Breakout(JFrame j) {
         jframe = j; 
-        ball = new Ball();
+        balls = new Ball[MAX_BALLS];
+        balls[0] = new Ball(0);
+        balls[1] = null;
+        balls[2] = null;
         brick_list = new BrickList(5, 10);
 	    paddle = new Paddle();
         active = false;
         started = false;
+    }
+
+    public void PrintCenter(Graphics2D g2, String str, int y) {
+        int width = g2.getFontMetrics().stringWidth(str);
+        g2.drawString(str, (getWidth() - width) / 2, y);
     }
 
     // custom graphics drawing 
@@ -140,13 +155,50 @@ System.out.println(e.getKeyCode());
         g2.setColor(Color.BLACK);
         g2.fill(new Rectangle2D.Double(0, 0, getWidth(), getHeight()));
 
-        if (LEVEL == 0) {
+        if (LEVEL == -1) {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 22));
-            g2.drawString("Name: Liam Palmer", 10, 25);
-            g2.drawString("UserID: lcpalmer", 10, 50);
-            g2.drawString("Student #: 20534162", 10, 75);
-            g2.drawString("Move the bottom paddle to block the ball from hitting the bottom of the screen", 10, 100);
+            String message = "GAME OVER :(";
+            int message_width = g2.getFontMetrics().stringWidth(message);
+            g2.drawString(message, (getWidth() - message_width) / 2, 30);
+            String score = "SCORE: " + SCORE;
+            int score_width = g2.getFontMetrics().stringWidth(score);
+            g2.drawString(score, (getWidth() - score_width) / 2, 55);
+        }
+        else if (LEVEL == 0) {
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 22));
+            
+            String name = "Name: Liam Palmer";
+            int name_width = g2.getFontMetrics().stringWidth(name);
+            g2.drawString(name, (getWidth() - name_width) / 2, 30);
+            String id = "UserID: lcpalmer";
+            int id_width = g2.getFontMetrics().stringWidth(id);
+            g2.drawString(id, (getWidth() - id_width) / 2, 55);
+            String student = "Student #: 20534162";
+            int student_width = g2.getFontMetrics().stringWidth(student);
+            g2.drawString(student, (getWidth() - student_width) / 2, 80);
+           
+            g2.setFont(new Font("Arial", Font.BOLD, 15));
+            PrintCenter(g2, "GOAL 1: Keep ball from hitting bottom of screen!", 160);
+            PrintCenter(g2, "GOAL 2: Eliminate all blocks in order to level up!", 180);
+            PrintCenter(g2, "LEFT ARROW: Move paddle left.", 200);
+            PrintCenter(g2, "RIGHT ARROW: Move paddle right.", 220);
+            PrintCenter(g2, "Q: Quit Game", 240);
+            PrintCenter(g2, "2: Skip to Level 2", 260);
+            PrintCenter(g2, "ENTER: Start Game and Start Play", 280);
+            PrintCenter(g2, "SPACE BAR: Pause Game", 300);
+        }
+        else if (LEVEL == 3) {
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 22));
+            String message = "GAME WON :)";
+            int message_width = g2.getFontMetrics().stringWidth(message);
+            g2.drawString(message, (getWidth() - message_width) / 2, 30);
+            String score = "SCORE: " + SCORE;
+            int score_width = g2.getFontMetrics().stringWidth(score);
+            g2.drawString(score, (getWidth() - score_width) / 2, 55);
+            // Final page showing data when won
         }
         else {
             g2.setColor(Color.WHITE);
@@ -158,30 +210,42 @@ System.out.println(e.getKeyCode());
             String level_text = "LEVEL: " + LEVEL;
             int level_width = g2.getFontMetrics().stringWidth(level_text);
             g2.drawString(level_text, getWidth() - level_width - 3, 17);
-            ball.draw(g2);
+            for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                if (balls[iter] != null) {
+                    balls[iter].draw(g2);
+                }
+            }
             brick_list.draw(g2);
 	        paddle.draw(g2);
         }
-        //g2.setStroke(new BasicStroke(32)); // 32 pixel thick stroke
-        //g2.setColor(Color.BLUE); // make it blue
-
-        //g2.drawLine(0, 0, getWidth(), getHeight());  // draw line 
-        //g2.setColor(Color.RED);
-        //g2.drawLine(getWidth(), 0, 0, getHeight());  
-
-	    //    String label = "Mouse at (" + mouseX + ", " + mouseY + ")";
-        //g2.setColor(Color.BLACK);
-	    //    g2.drawString(label, 130, 40);
     }
 
     public class Test implements Runnable {
         public void run() {
             while (true) {
-                if (LEVEL != 0) {
+                if (LEVEL > 0) {
                     // Move the paddle first so the ball can collide with it appropriately.
                     paddle.move();
                     // Once the paddle is in the correct position, move the ball.
-                    ball.move();
+                    for (int iter = 0; iter < MAX_BALLS; ++iter) {
+                        if (balls[iter] != null) {
+                            balls[iter].move();
+                        }
+                    }
+                    if (brick_list.ZeroBricks()) {
+                        if (LEVEL == 1) {
+                            LEVEL = 2;
+                            brick_list.ResetBricks();
+                        }
+                        else if (LEVEL == 2) {
+                            LEVEL = 3;
+                        }                    
+                        active = false;
+                        started = false;
+                    }
+                    if (LIVES == 0) {
+                        LEVEL = -1;
+                    }
                     repaint();
                 }
                 try {
@@ -275,12 +339,17 @@ System.out.println(e.getKeyCode());
         private float position_y;
         private float direction_x;
         private float direction_y;
+        // Which ball this is in the event of multiple balls.
+        private int order;
 
-        public Ball() {
-            position_x = WIDTH - 20;
-            position_y = 2 * HEIGHT / 3;
-            direction_x = -BALL_SPEED;
-            direction_y = BALL_SPEED;
+        public Ball(int ball_order) {
+            if (order == 0) {
+                position_x = WIDTH - 20;
+                position_y = 2 * HEIGHT / 3;
+                direction_x = -BALL_SPEED;
+                direction_y = BALL_SPEED;
+            }
+            order = ball_order;
         }
 
         public void move() {
@@ -300,6 +369,8 @@ System.out.println(e.getKeyCode());
                 position_y = 2 * getHeight() / 3;
                 position_x = position_x < 0 ? 0 : position_x;
                 position_y = position_y < 0 ? 0 : position_y;
+                direction_x = -BALL_SPEED;
+                direction_y = BALL_SPEED;
                 return;
             }
             // If the game is not active, do not move the ball.
@@ -323,8 +394,16 @@ System.out.println(e.getKeyCode());
                 if (iteration == magnitude_direction_x + 1) {
                     // Adding the following value to the positions will ensure we have travelled
                     // the correct distance.
-                    position_x += (Math.abs(new_position_x) - (int)Math.abs(new_position_x)) * sign_direction_x;
-                    position_y += (Math.abs(new_position_y) - (int)Math.abs(new_position_y)) * sign_direction_y;
+                    float diff_x = ((float)Math.abs(new_position_x) - (int)Math.abs(new_position_x)) * sign_direction_x;
+                    float diff_y = ((float)Math.abs(new_position_y) - (int)Math.abs(new_position_y)) * sign_direction_y;
+                    if (diff_x == 0.0f) {
+                        diff_x = 0.4f * sign_direction_x;
+                    }
+                    if (diff_y == 0.0f) {
+                        diff_y = 0.4f * sign_direction_y;
+                    }
+                    position_x += diff_x;
+                    position_y += diff_y;
                 }
                 else {
                     // Otherwise, increment the positions by 1 pixel and check for collisions.
@@ -398,28 +477,34 @@ System.out.println(e.getKeyCode());
                 if (position_x < BALL_RADIUS) {
                     position_x = BALL_RADIUS;
                     direction_x = BALL_SPEED;
+                    SCORE += 10;
                 }
                 if (position_x > getWidth() - BALL_RADIUS) {
                     position_x = getWidth() - BALL_RADIUS;
                     direction_x = -BALL_SPEED;
+                    SCORE += 10;
                 }
                 if (position_y < BALL_RADIUS) {
                     position_y = BALL_RADIUS;
                     direction_y = BALL_SPEED;
+                    SCORE += 10;
                 }
 
                 // Check for intersections with the paddle.
                 Collision hit = paddle.intersect((int)position_x, (int)position_y);
                 if (hit == Collision.TOP) {
                     direction_y = -BALL_SPEED;
+                    SCORE += 10;
                 }
                 else if (hit == Collision.TL_CORNER) {
                     direction_y = -BALL_SPEED;
                     direction_x = -BALL_SPEED;
+                    SCORE += 10;
                 }
                 else if (hit == Collision.TR_CORNER) {
                     direction_y = -BALL_SPEED;
                     direction_x = BALL_SPEED;
+                    SCORE += 10;
                 }
 
                 if (position_y > getHeight() - BALL_RADIUS) {
@@ -448,6 +533,25 @@ System.out.println(e.getKeyCode());
 	    public Brick[][] getBricks() {
 	        return bricks;
 	    }
+        
+        public boolean ZeroBricks() {
+            for (int a = 0; a < bricks.length; ++a) {
+                for (int b = 0; b < bricks[a].length; ++b) {
+                    if (bricks[a][b] != null) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public void ResetBricks() {
+            for (int a = 0; a < bricks.length; ++a) {
+                for (int b = 0; b < bricks[a].length; ++b) {
+                    bricks[a][b] = new Brick(a, b);
+                }
+            }
+        }
 
         public BrickList(int r, int c) {
             bricks = new Brick[r][c];
@@ -460,7 +564,12 @@ System.out.println(e.getKeyCode());
 
         public void nullify(int r, int c) {
             if (r >= 0 && r < bricks.length && c >=0 && c < bricks[r].length) {
-                bricks[r][c] = null;
+                if (bricks[r][c].getLives() == 0) {
+                    bricks[r][c] = null;
+                }
+                else {
+                    bricks[r][c].reduceLives();
+                }
                 SCORE += 10;
             }
         }
@@ -479,10 +588,25 @@ System.out.println(e.getKeyCode());
     public class Brick {
         private int row;
         private int column;
+        private int lives;
 
         public Brick(int r, int c) {
             row = r;
             column = c;
+            if (LEVEL == 2 && r % 2 == 1 && c % 2 == 1) {
+                lives = 1;
+            }
+            else {
+                lives = 0;
+            }
+        }
+
+        public int getLives() {
+            return lives;
+        }
+
+        public void reduceLives() {
+            lives--;
         }
 
 	    public Collision intersectHorizontal(int position_x, int position_y) {
@@ -553,6 +677,19 @@ System.out.println(e.getKeyCode());
             if ((row + column) % 5 == 4) {
 		        g.setColor(Color.YELLOW);
 	        }
+            if (LEVEL == 2) {
+                if (row % 2 == 1 && column % 2 == 1) {
+                    if (lives == 1) {
+                        g.setColor(Color.YELLOW);
+                    }
+                    else {
+                        g.setColor(Color.MAGENTA);
+                    }
+                }
+                else {
+                    g.setColor(Color.BLUE);
+                }
+            }
             g.fill(new Rectangle2D.Double(getWidth() * (column + X_OFFSET) / X_DIVISION,
 					                      getHeight() * (row + Y_OFFSET) / Y_DIVISION,
 					                      getWidth() / (X_DIVISION + 1),
